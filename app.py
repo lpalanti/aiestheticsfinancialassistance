@@ -47,9 +47,14 @@ st.subheader("📂 Despesas Mensais")
 
 st.markdown("---")
 
+# Inicializar session_state para as despesas, se não existir
+for nome in despesas.keys():
+    if nome not in st.session_state:
+        st.session_state[nome] = False  # Inicializando o estado como False (não pago)
+
 # Controle de despesas pagas
 for nome in despesas.keys():
-    pago = st.checkbox(f"{nome}", key=nome)
+    pago = st.checkbox(f"{nome}", key=nome, value=st.session_state[nome])
     st.session_state[nome] = pago
 
 st.markdown("---")
@@ -67,4 +72,3 @@ if st.button("🔔 Verificar alertas e enviar"):
 # Rodapé
 st.markdown("---")
 st.caption("© 2025 Aiesthetics App")
-
