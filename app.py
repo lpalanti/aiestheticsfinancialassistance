@@ -27,8 +27,8 @@ def enviar_telegram(mensagem):
     data = {"chat_id": CHAT_ID, "text": mensagem}
     try:
         requests.post(url, data=data)
-    except:
-        st.warning("Erro ao enviar mensagem no Telegram.")
+    except Exception as e:
+        st.warning(f"Erro ao enviar mensagem no Telegram: {e}")
 
 # Função para verificar alertas
 def verificar_alertas():
