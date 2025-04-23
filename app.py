@@ -1,10 +1,4 @@
 import streamlit as st
-import datetime
-import requests
-
-# Dados do Telegram
-CHAT_ID = "1963421158"
-BOT_TOKEN = "7971840892:AAH8sIg3iQUI7jQkMSd3YrYPaU4giRDVRQc"
 
 # Despesas e datas de vencimento
 despesas = {
@@ -21,25 +15,6 @@ despesas = {
     "MEI 2": 30,
 }
 
-# Função para enviar mensagem no Telegram
-def enviar_telegram(mensagem):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    data = {"chat_id": CHAT_ID, "text": mensagem}
-    try:
-        requests.post(url, data=data)
-    except Exception as e:
-        st.warning(f"Erro ao enviar mensagem no Telegram: {e}")
-
-# Função para verificar alertas
-def verificar_alertas():
-    hoje = datetime.datetime.now().day
-    mensagens = []
-    for nome, vencimento in despesas.items():
-        alerta_dia = (vencimento - 3) % 31 or 30
-        if hoje == alerta_dia:
-            mensagens.append(f"⚠️ Lembrete: '{nome}' vence em 3 dias ({vencimento}/mês)!")
-    return mensagens
-
 # Streamlit App
 st.set_page_config(page_title="Aiesthetics - Financial Assistance", layout="centered")
 st.title("💸 Aiesthetics - Financial Assistance")
@@ -47,28 +22,14 @@ st.subheader("📂 Despesas Mensais")
 
 st.markdown("---")
 
-# Inicializar session_state para as despesas, se não existir
-for nome in despesas.keys():
-    if nome not in st.session_state:
-        st.session_state[nome] = False  # Inicializando o estado como False (não pago)
-
 # Controle de despesas pagas
 for nome in despesas.keys():
-    pago = st.checkbox(f"{nome}", key=nome, value=st.session_state.get(nome, False))
-    st.session_state[nome] = pago
-
-st.markdown("---")
-
-# Botão para verificar alertas
-if st.button("🔔 Verificar alertas e enviar"):
-    mensagens = verificar_alertas()
-    if mensagens:
-        for msg in mensagens:
-            enviar_telegram(msg)
-        st.success("Alertas enviados no Telegram!")
+    pago = st.checkbox(f"{nome} - Vence dia {despesas[nome]}", key=nome)
+    if pago:
+        st.write(f"✔️ {nome} marcado como pago")
     else:
-        st.info("Nenhum alerta necessário hoje.")
+        st.write(f"❌ {nome} ainda não pago")
 
-# Rodapé
 st.markdown("---")
+
 st.caption("© 2025 Aiesthetics App")
