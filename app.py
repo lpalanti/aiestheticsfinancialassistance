@@ -54,7 +54,7 @@ for nome in despesas.keys():
 
 # Controle de despesas pagas
 for nome in despesas.keys():
-    pago = st.checkbox(f"{nome}", key=nome, value=st.session_state[nome])
+    pago = st.checkbox(f"{nome}", key=nome, value=st.session_state.get(nome, False))
     st.session_state[nome] = pago
 
 st.markdown("---")
