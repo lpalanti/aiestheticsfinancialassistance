@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 # Configurações iniciais
 st.set_page_config(page_title="Assistente Financeiro Valerio", layout="wide")
 
-st.title("\ud83d\udcc8 Assistente Financeiro Valerio 3.1")
+st.title("Assistente Financeiro Valerio 3.1")
 
 # Lista de ativos monitorados
 ativos = {
@@ -36,7 +36,7 @@ dados_carteira = carregar_dados(ativos_selecionados)
 
 # Mostrar gráficos
 for ativo, df in dados_carteira.items():
-    st.subheader(f"\ud83d\udcc8 {ativo} - Últimos 6 meses")
+    st.subheader(f"{ativo} - Últimos 6 meses")
     if not df.empty:
         fig, ax = plt.subplots()
         ax.plot(df.index, df['Close'], label=f'{ativo}')
@@ -87,7 +87,7 @@ for ativo in ativos_selecionados:
         st.sidebar.write(f"{ativo}: Dados indisponíveis")
 
 # Simulação de cenários
-st.header("\ud83d\udcca Simulação de Cenários Econômicos")
+st.header("Simulação de Cenários Econômicos")
 cenario = st.selectbox("Escolha um cenário:", ["Crise Fiscal no Brasil", "Recessão Global", "Crescimento Global Acelerado"])
 
 # Variações percentuais dos cenários
