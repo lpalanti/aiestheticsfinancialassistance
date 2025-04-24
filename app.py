@@ -2,6 +2,7 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import matplotlib.pyplot as plt
+from datetime import date
 
 # Configurações iniciais
 st.set_page_config(page_title="Assistente Financeiro Valerio", layout="wide")
@@ -17,6 +18,48 @@ ativos = {
     'SMAL11': 'SMAL11.SA',
     'PETR4': 'PETR4.SA'
 }
+
+# Inicialização da carteira no session_state
+if 'carteira' not in st.session_state:
+    st.session_state.carteira = []  # Lista de dicionários com {ativo, quantidade, data, preco}
+
+# Gerenciamento manual da carteira
+st.sidebar.header("Gerenciar Carteira")
+operacao = st.sidebar.radio("Escolha uma operação:", ["Adicionar", "Excluir"])
+ativo_escolhido = st.sidebar.selectbox("Ativo:", list(ativos.keys()))
+quantidade = st.sidebar.number_input("Quantidade:", min_value=0.0, step=1.0)
+preco = st.sidebar.number_input("Preço por cota (R$):", min_value=0.0, step=0.01)
+data_operacao = st.sidebar.date_input("Data da operação:", value=date.today())
+
+if st.sidebar.button("Confirmar Operação"):
+    if operacao == "Adicionar":
+        st.session_state.carteira.append({
+            'ativo': ativo_escolhido,
+            'quantidade': quantidade,
+            'preco': preco,
+            'data': data_operacao,
+            'tipo': 'compra'
+        })
+        st.sidebar.success("Compra adicionada com sucesso!")
+    elif operacao == "Excluir":
+        st.session_state.carteira.append({
+            'ativo': ativo_escolhido,
+            'quantidade': -quantidade,  # Quantidade negativa para venda
+            'preco': preco,
+            'data': data_operacao,
+            'tipo': 'venda'
+        })
+        st.sidebar.success("Venda registrada com sucesso!")
+
+# Exibir histórico da carteira
+st.sidebar.subheader("Histórico de Operações")
+if st.session_state.carteira:
+    df_carteira = pd.DataFrame(st.session_state.carteira)
+    st.sidebar.dataframe(df_carteira)
+else:
+    st.sidebar.write("Nenhuma operação registrada.")
+
+# -- Restante do código mantido como estava --
 
 # Seção de seleção de ativos
 st.sidebar.header("Selecione os ativos para análise")
@@ -47,17 +90,7 @@ for ativo, df in dados_carteira.items():
     else:
         st.warning(f"Sem dados disponíveis para {ativo} nos últimos 6 meses.")
 
-# Simulação básica de carteira (valores atuais)
-st.sidebar.header("Sua carteira")
-carteira = {
-    'IVVB11': 1,  # cota
-    'GOLD11': 5,  # cotas
-    'BOVA11': 0,
-    'DOL11': 0,
-    'SMAL11': 0,
-    'PETR4': 0
-}
-
+# Calcular valor atual da carteira
 valores_atuais = {}
 for ativo in ativos_selecionados:
     df = yf.Ticker(ativos[ativo]).history(period="1d")
@@ -66,12 +99,15 @@ for ativo in ativos_selecionados:
     else:
         valores_atuais[ativo] = None
 
+# Calcular valor total com base na carteira registrada
 valor_total = 0
-for ativo in ativos_selecionados:
-    qtd = carteira.get(ativo, 0)
-    preco = valores_atuais.get(ativo)
-    if preco is not None:
-        valor_total += qtd * preco
+if st.session_state.carteira:
+    df_carteira = pd.DataFrame(st.session_state.carteira)
+    for ativo in df_carteira['ativo'].unique():
+        preco = valores_atuais.get(ativo)
+        if preco is not None:
+            qtd_total = df_carteira[df_carteira['ativo'] == ativo]['quantidade'].sum()
+            valor_total += qtd_total * preco
 
 if valor_total > 0:
     st.sidebar.metric(label="Valor atual da carteira", value=f"R$ {valor_total:,.2f}")
@@ -99,17 +135,18 @@ variacoes = {
 
 # Calcular carteira simulada
 valor_simulado = 0
-for ativo in ativos_selecionados:
-    qtd = carteira.get(ativo, 0)
-    preco = valores_atuais.get(ativo)
-    variacao = variacoes[cenario].get(ativo, 0)
-    if preco is not None:
-        preco_simulado = preco * (1 + variacao)
-        valor_simulado += qtd * preco_simulado
+if st.session_state.carteira:
+    df_carteira = pd.DataFrame(st.session_state.carteira)
+    for ativo in df_carteira['ativo'].unique():
+        preco = valores_atuais.get(ativo)
+        variacao = variacoes[cenario].get(ativo, 0)
+        if preco is not None:
+            preco_simulado = preco * (1 + variacao)
+            qtd_total = df_carteira[df_carteira['ativo'] == ativo]['quantidade'].sum()
+            valor_simulado += qtd_total * preco_simulado
 
 if valor_simulado > 0:
     st.success(f"Valor simulado da carteira no cenário '{cenario}': R$ {valor_simulado:,.2f}")
 else:
     st.info("Nenhum ativo com valor para simulação.")
-
 
