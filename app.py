@@ -8,7 +8,7 @@ st.set_page_config(page_title="Assistente Financeiro Valerio", layout="wide")
 
 st.title("📊 Assistente Financeiro Valerio 3.1")
 
-# Lista de ativos que vamos monitorar
+# Lista de ativos monitorados
 ativos = {
     'IVVB11': 'IVVB11.SA',
     'BOVA11': 'BOVA11.SA',
@@ -37,15 +37,20 @@ dados_carteira = carregar_dados(ativos_selecionados)
 # Mostrar gráficos
 for ativo, df in dados_carteira.items():
     st.subheader(f"📈 {ativo} - Últimos 6 meses")
-    fig, ax = plt.subplots()
-    ax.plot(df.index, df['Close'], label=f'{ativo}')
-    ax.set_xlabel("Data")
-    ax.set_ylabel("Preço (R$)")
-    ax.legend()
-    st.pyplot(fig)
+    if not df.empty:
+        fig, ax = plt.subplots()
+        ax.plot(df.index, df['Close'], label=f'{ativo}')
+        ax.set_xlabel("Data")
+        ax.set_ylabel("Preço (R$)")
+        ax.legend()
+        st.pyplot(fig)
+    else:
+        st.warning(f"Sem dados disponíveis para {ativo} nos últimos 6 meses.")
 
 # Simulação básica de carteira (valores atuais)
 st.sidebar.header("Sua carteira")
+
+# Carteira exemplo (ajuste conforme sua posição real)
 carteira = {
     'IVVB11': 1,  # cota
     'GOLD11': 5,  # cotas
@@ -55,8 +60,36 @@ carteira = {
     'PETR4': 0
 }
 
-valores_atuais = {ativo: yf.Ticker(ativos[ativo]).history(period="1d")['Close'].iloc[0] for ativo in ativos_selecionados}
-valor_total = sum(carteira[ativo] * valores_atuais.get(ativo, 0) for ativo in ativos_selecionados)
+# Coletar preços atuais com segurança
+valores_atuais = {}
+for ativo in ativos_selecionados:
+    df = yf.Ticker(ativos[ativo]).history(period="1d")
+    if not df.empty:
+        valores_atuais[ativo] = df['Close'].iloc[0]
+    else:
+        valores_atuais[ativo] = None  # Sem dados
 
-st.sidebar.metric(label="Valor atual da carteira", value=f"R$ {valor_total:,.2f}")
+# Calcular o valor total da carteira
+valor_total = 0
+for ativo in ativos_selecionados:
+    qtd = carteira.get(ativo, 0)
+    preco = valores_atuais.get(ativo)
+    if preco is not None:
+        valor_total += qtd * preco
+
+# Exibir valores
+if valor_total > 0:
+    st.sidebar.metric(label="Valor atual da carteira", value=f"R$ {valor_total:,.2f}")
+else:
+    st.sidebar.warning("Sem dados de preço disponíveis para calcular o valor da carteira.")
+
+# Mostrar preços atuais
+st.sidebar.subheader("Preços Atuais")
+for ativo in ativos_selecionados:
+    preco = valores_atuais.get(ativo)
+    if preco is not None:
+        st.sidebar.write(f"{ativo}: R$ {preco:,.2f}")
+    else:
+        st.sidebar.write(f"{ativo}: Dados indisponíveis")
+
 
