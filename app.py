@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 # Configurações iniciais
 st.set_page_config(page_title="Assistente Financeiro Valerio", layout="wide")
 
-st.title("📊 Assistente Financeiro Valerio 3.1")
+st.title("\ud83d\udcc8 Assistente Financeiro Valerio 3.1")
 
 # Lista de ativos monitorados
 ativos = {
@@ -28,7 +28,7 @@ def carregar_dados(ativos_selecionados):
     dados = {}
     for ativo in ativos_selecionados:
         ticker = yf.Ticker(ativos[ativo])
-        df = ticker.history(period="6mo")  # Últimos 6 meses
+        df = ticker.history(period="6mo")
         dados[ativo] = df
     return dados
 
@@ -36,7 +36,7 @@ dados_carteira = carregar_dados(ativos_selecionados)
 
 # Mostrar gráficos
 for ativo, df in dados_carteira.items():
-    st.subheader(f"📈 {ativo} - Últimos 6 meses")
+    st.subheader(f"\ud83d\udcc8 {ativo} - Últimos 6 meses")
     if not df.empty:
         fig, ax = plt.subplots()
         ax.plot(df.index, df['Close'], label=f'{ativo}')
@@ -49,8 +49,6 @@ for ativo, df in dados_carteira.items():
 
 # Simulação básica de carteira (valores atuais)
 st.sidebar.header("Sua carteira")
-
-# Carteira exemplo (ajuste conforme sua posição real)
 carteira = {
     'IVVB11': 1,  # cota
     'GOLD11': 5,  # cotas
@@ -60,16 +58,14 @@ carteira = {
     'PETR4': 0
 }
 
-# Coletar preços atuais com segurança
 valores_atuais = {}
 for ativo in ativos_selecionados:
     df = yf.Ticker(ativos[ativo]).history(period="1d")
     if not df.empty:
         valores_atuais[ativo] = df['Close'].iloc[0]
     else:
-        valores_atuais[ativo] = None  # Sem dados
+        valores_atuais[ativo] = None
 
-# Calcular o valor total da carteira
 valor_total = 0
 for ativo in ativos_selecionados:
     qtd = carteira.get(ativo, 0)
@@ -77,13 +73,11 @@ for ativo in ativos_selecionados:
     if preco is not None:
         valor_total += qtd * preco
 
-# Exibir valores
 if valor_total > 0:
     st.sidebar.metric(label="Valor atual da carteira", value=f"R$ {valor_total:,.2f}")
 else:
     st.sidebar.warning("Sem dados de preço disponíveis para calcular o valor da carteira.")
 
-# Mostrar preços atuais
 st.sidebar.subheader("Preços Atuais")
 for ativo in ativos_selecionados:
     preco = valores_atuais.get(ativo)
@@ -91,5 +85,31 @@ for ativo in ativos_selecionados:
         st.sidebar.write(f"{ativo}: R$ {preco:,.2f}")
     else:
         st.sidebar.write(f"{ativo}: Dados indisponíveis")
+
+# Simulação de cenários
+st.header("\ud83d\udcca Simulação de Cenários Econômicos")
+cenario = st.selectbox("Escolha um cenário:", ["Crise Fiscal no Brasil", "Recessão Global", "Crescimento Global Acelerado"])
+
+# Variações percentuais dos cenários
+variacoes = {
+    "Crise Fiscal no Brasil": {"IVVB11": 0.15, "GOLD11": 0.10, "BOVA11": -0.15, "DOL11": 0.12, "SMAL11": -0.20, "PETR4": -0.10},
+    "Recessão Global": {"IVVB11": -0.15, "GOLD11": 0.10, "BOVA11": -0.20, "DOL11": 0.08, "SMAL11": -0.25, "PETR4": -0.10},
+    "Crescimento Global Acelerado": {"IVVB11": 0.20, "GOLD11": -0.10, "BOVA11": 0.15, "DOL11": -0.05, "SMAL11": 0.25, "PETR4": 0.15}
+}
+
+# Calcular carteira simulada
+valor_simulado = 0
+for ativo in ativos_selecionados:
+    qtd = carteira.get(ativo, 0)
+    preco = valores_atuais.get(ativo)
+    variacao = variacoes[cenario].get(ativo, 0)
+    if preco is not None:
+        preco_simulado = preco * (1 + variacao)
+        valor_simulado += qtd * preco_simulado
+
+if valor_simulado > 0:
+    st.success(f"Valor simulado da carteira no cenário '{cenario}': R$ {valor_simulado:,.2f}")
+else:
+    st.info("Nenhum ativo com valor para simulação.")
 
 
