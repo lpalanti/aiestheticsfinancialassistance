@@ -94,7 +94,7 @@ dados_carteira = carregar_dados(ativos_selecionados)
 for ativo, df in dados_carteira.items():
     st.subheader(f"{ativo} - Últimos 6 meses")
     if not df.empty:
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(5, 2))  # Reduzido tamanho do gráfico
         ax.plot(df.index, df['Close'], label=f'{ativo}')
         ax.set_xlabel("Data")
         ax.set_ylabel("Preço (R$)")
