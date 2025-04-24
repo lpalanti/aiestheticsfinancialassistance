@@ -72,8 +72,6 @@ if st.session_state.carteira:
 else:
     st.sidebar.write("Nenhuma operação registrada.")
 
-# -- Restante do código mantido como estava --
-
 # Seção de seleção de ativos
 st.sidebar.header("Selecione os ativos para análise")
 ativos_selecionados = st.sidebar.multiselect("Escolha os ativos:", list(ativos.keys()), default=list(ativos.keys()))
@@ -94,11 +92,12 @@ dados_carteira = carregar_dados(ativos_selecionados)
 for ativo, df in dados_carteira.items():
     st.subheader(f"{ativo} - Últimos 6 meses")
     if not df.empty:
-        fig, ax = plt.subplots(figsize=(5, 2))  # Reduzido tamanho do gráfico
-        ax.plot(df.index, df['Close'], label=f'{ativo}')
-        ax.set_xlabel("Data")
-        ax.set_ylabel("Preço (R$)")
-        ax.legend()
+        fig, ax = plt.subplots(figsize=(3, 1.5))  # Tamanho ainda menor
+        ax.plot(df.index, df['Close'], label=f'{ativo}', linewidth=0.8)
+        ax.set_xlabel("Data", fontsize=6)
+        ax.set_ylabel("Preço (R$)", fontsize=6)
+        ax.legend(fontsize=6)
+        ax.tick_params(axis='both', labelsize=6)
         st.pyplot(fig)
     else:
         st.warning(f"Sem dados disponíveis para {ativo} nos últimos 6 meses.")
@@ -162,4 +161,3 @@ if valor_simulado > 0:
     st.success(f"Valor simulado da carteira no cenário '{cenario}': R$ {valor_simulado:,.2f}")
 else:
     st.info("Nenhum ativo com valor para simulação.")
-
