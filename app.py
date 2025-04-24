@@ -1,78 +1,62 @@
 import streamlit as st
-import datetime
-import requests
+import yfinance as yf
+import pandas as pd
+import matplotlib.pyplot as plt
 
-# Despesas e datas de vencimento
-despesas = {
-    "Enel": 26,
-    "Nubank": 30,
-    "Cartão Carrefour": 30,
-    "Vivo Fibra": 30,
-    "Celular (Vivo)": 30,
-    "Celular (Claro)": 30,
-    "Pensão": 6,
-    "Empréstimo": 30,
-    "Aluguel": 30,
-    "MEI 1": 30,
-    "MEI 2": 30,
+# Configurações iniciais
+st.set_page_config(page_title="Assistente Financeiro Valerio", layout="wide")
+
+st.title("📊 Assistente Financeiro Valerio 3.1")
+
+# Lista de ativos que vamos monitorar
+ativos = {
+    'IVVB11': 'IVVB11.SA',
+    'BOVA11': 'BOVA11.SA',
+    'GOLD11': 'GOLD11.SA',
+    'DOL11': 'DOL11.SA',
+    'SMAL11': 'SMAL11.SA',
+    'PETR4': 'PETR4.SA'
 }
 
-# Seu ID do Telegram e token do bot
-TELEGRAM_CHAT_ID = '1963421158'  # Substitua com seu ID de usuário
-TELEGRAM_BOT_TOKEN = '7971840892:AAH8sIg3iQUI7jQkMSd3YrYPaU4giRDVRQc'  # Substitua com o seu token
+# Seção de seleção de ativos
+st.sidebar.header("Selecione os ativos para análise")
+ativos_selecionados = st.sidebar.multiselect("Escolha os ativos:", list(ativos.keys()), default=list(ativos.keys()))
 
-# Função para enviar mensagem no Telegram
-def enviar_telegram(mensagem):
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    data = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": mensagem
-    }
-    try:
-        response = requests.post(url, data=data)
-        if response.status_code == 200:
-            st.success("Alerta enviado no Telegram!")
-        else:
-            st.error(f"Erro ao enviar alerta no Telegram: {response.status_code}")
-    except Exception as e:
-        st.warning(f"Erro ao enviar mensagem no Telegram: {e}")
+# Baixar dados das cotações
+@st.cache_data
+def carregar_dados(ativos_selecionados):
+    dados = {}
+    for ativo in ativos_selecionados:
+        ticker = yf.Ticker(ativos[ativo])
+        df = ticker.history(period="6mo")  # Últimos 6 meses
+        dados[ativo] = df
+    return dados
 
-# Função para verificar alertas
-def verificar_alertas():
-    hoje = datetime.datetime.now().day
-    mensagens = []
-    for nome, vencimento in despesas.items():
-        alerta_dia = (vencimento - 3) % 31 or 30  # 3 dias antes do vencimento
-        if hoje == alerta_dia:
-            mensagens.append(f"⚠️ Lembrete: '{nome}' vence em 3 dias ({vencimento}/mês)!")
-    return mensagens
+dados_carteira = carregar_dados(ativos_selecionados)
 
-# Streamlit App
-st.set_page_config(page_title="Aiesthetics - Financial Assistance", layout="centered")
-st.title("💸 Aiesthetics - Financial Assistance")
-st.subheader("📂 Despesas Mensais")
+# Mostrar gráficos
+for ativo, df in dados_carteira.items():
+    st.subheader(f"📈 {ativo} - Últimos 6 meses")
+    fig, ax = plt.subplots()
+    ax.plot(df.index, df['Close'], label=f'{ativo}')
+    ax.set_xlabel("Data")
+    ax.set_ylabel("Preço (R$)")
+    ax.legend()
+    st.pyplot(fig)
 
-st.markdown("---")
+# Simulação básica de carteira (valores atuais)
+st.sidebar.header("Sua carteira")
+carteira = {
+    'IVVB11': 1,  # cota
+    'GOLD11': 5,  # cotas
+    'BOVA11': 0,
+    'DOL11': 0,
+    'SMAL11': 0,
+    'PETR4': 0
+}
 
-# Controle de despesas pagas
-for nome in despesas.keys():
-    pago = st.checkbox(f"{nome} - Vence dia {despesas[nome]}", key=nome)
-    if pago:
-        st.write(f"✔️ {nome} marcado como pago")
-    else:
-        st.write(f"❌ {nome} ainda não pago")
+valores_atuais = {ativo: yf.Ticker(ativos[ativo]).history(period="1d")['Close'].iloc[0] for ativo in ativos_selecionados}
+valor_total = sum(carteira[ativo] * valores_atuais.get(ativo, 0) for ativo in ativos_selecionados)
 
-st.markdown("---")
+st.sidebar.metric(label="Valor atual da carteira", value=f"R$ {valor_total:,.2f}")
 
-# Botão para verificar alertas e enviar para Telegram
-if st.button("🔔 Verificar alertas e enviar no Telegram"):
-    mensagens = verificar_alertas()
-    if mensagens:
-        for msg in mensagens:
-            enviar_telegram(msg)
-    else:
-        st.info("Nenhum alerta necessário hoje.")
-
-st.markdown("---")
-
-st.caption("© 2025 Aiesthetics App")
