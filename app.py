@@ -3,6 +3,7 @@ import yfinance as yf
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import date
+import os
 
 # Configurações iniciais
 st.set_page_config(page_title="Assistente Financeiro Valerio", layout="wide")
@@ -19,37 +20,49 @@ ativos = {
     'PETR4': 'PETR4.SA'
 }
 
+# Caminho do arquivo CSV para persistência
+csv_file = "carteira.csv"
+
+# Dados iniciais se o CSV não existir
+dados_iniciais = pd.DataFrame([
+    {'ativo': 'IVVB11', 'quantidade': 1, 'preco': 348.25, 'data': pd.to_datetime('2025-04-24'), 'tipo': 'compra'},
+    {'ativo': 'GOLD11', 'quantidade': 5.05, 'preco': 19.78, 'data': pd.to_datetime('2025-04-24'), 'tipo': 'compra'}
+])
+
+# Carregar carteira do CSV, se existir
+if os.path.exists(csv_file):
+    df_carteira = pd.read_csv(csv_file, parse_dates=['data'])
+else:
+    df_carteira = dados_iniciais.copy()
+    df_carteira.to_csv(csv_file, index=False)
+
 # Inicialização da carteira no session_state
 if 'carteira' not in st.session_state:
-    st.session_state.carteira = []  # Lista de dicionários com {ativo, quantidade, data, preco}
+    st.session_state.carteira = df_carteira.copy().to_dict('records')
 
 # Gerenciamento manual da carteira
 st.sidebar.header("Gerenciar Carteira")
 operacao = st.sidebar.radio("Escolha uma operação:", ["Adicionar", "Excluir"])
-ativo_escolhido = st.sidebar.selectbox("Ativo:", list(ativos.keys()))
+ativo_escolhido = st.sidebar.selectbox("Ativo (lista):", list(ativos.keys()))
+ativo_manual = st.sidebar.text_input("Ou digite o código do ativo manualmente:")
+ativo_final = ativo_manual.upper() if ativo_manual else ativo_escolhido
 quantidade = st.sidebar.number_input("Quantidade:", min_value=0.0, step=1.0)
 preco = st.sidebar.number_input("Preço por cota (R$):", min_value=0.0, step=0.01)
 data_operacao = st.sidebar.date_input("Data da operação:", value=date.today())
 
 if st.sidebar.button("Confirmar Operação"):
-    if operacao == "Adicionar":
-        st.session_state.carteira.append({
-            'ativo': ativo_escolhido,
-            'quantidade': quantidade,
-            'preco': preco,
-            'data': data_operacao,
-            'tipo': 'compra'
-        })
-        st.sidebar.success("Compra adicionada com sucesso!")
-    elif operacao == "Excluir":
-        st.session_state.carteira.append({
-            'ativo': ativo_escolhido,
-            'quantidade': -quantidade,  # Quantidade negativa para venda
-            'preco': preco,
-            'data': data_operacao,
-            'tipo': 'venda'
-        })
-        st.sidebar.success("Venda registrada com sucesso!")
+    nova_operacao = {
+        'ativo': ativo_final,
+        'quantidade': quantidade if operacao == "Adicionar" else -quantidade,
+        'preco': preco,
+        'data': data_operacao,
+        'tipo': 'compra' if operacao == "Adicionar" else 'venda'
+    }
+    st.session_state.carteira.append(nova_operacao)
+    # Atualizar CSV
+    df_atualizado = pd.DataFrame(st.session_state.carteira)
+    df_atualizado.to_csv(csv_file, index=False)
+    st.sidebar.success("Operação registrada e salva com sucesso!")
 
 # Exibir histórico da carteira
 st.sidebar.subheader("Histórico de Operações")
